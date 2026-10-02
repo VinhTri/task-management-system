@@ -1,0 +1,41 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/smartpending_demo}
+    username: ${DB_USERNAME:smartspend}
+    password: ${DB_PASSWORD:smartspend}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${MAIL_AUTH:true}
+      mail.smtp.starttls.enable: ${MAIL_STARTTLS:true}
+
+smartspend:
+  auth:
+    jwt-secret-base64: ${JWT_SECRET_BASE64:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
+    hmac-pepper: ${AUTH_HMAC_PEPPER:dev-only-change-this-long-random-secret}
+    access-token-ttl: 15m
+    refresh-token-ttl: 30d
+    otp-ttl: 5m
+    otp-cooldown: 60s
+    otp-send-window: 15m
+    otp-max-attempts: 5
+    otp-max-sends-per-window: 3
+    reset-token-ttl: 10m
+    mail-from: ${MAIL_FROM:no-reply@smartspend.local}
