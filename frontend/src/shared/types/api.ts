@@ -35,6 +35,47 @@ export interface AccountOverview {
   defaultWallet: WalletDetails | null
 }
 
+export type WalletTransactionType = 'DEPOSIT' | 'WITHDRAWAL' | 'TRANSFER_OUT' | 'TRANSFER_IN'
+
+export interface WalletTransaction {
+  id: number
+  referenceCode: string
+  type: WalletTransactionType
+  status: 'SUCCESS'
+  transferReference: string | null
+  counterpartyAccountNumber: string | null
+  amount: number
+  balanceBefore: number
+  balanceAfter: number
+  currency: string
+  description: string | null
+  createdAt: string
+}
+
+export interface InternalTransfer {
+  id: number
+  referenceCode: string
+  status: 'SUCCESS'
+  senderAccountNumber: string
+  recipientAccountNumber: string
+  amount: number
+  balanceBefore: number
+  balanceAfter: number
+  currency: string
+  description: string | null
+  createdAt: string
+}
+
+export interface PageResult<T> {
+  content: T[]
+  totalElements: number
+  totalPages: number
+  size: number
+  number: number
+  first: boolean
+  last: boolean
+}
+
 export type CategoryType = 'INCOME' | 'EXPENSE'
 
 export interface Category {
