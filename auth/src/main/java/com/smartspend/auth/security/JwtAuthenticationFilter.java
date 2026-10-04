@@ -1,6 +1,7 @@
 package com.smartspend.auth.security;
 
 import com.smartspend.auth.token.JwtService;
+import com.smartspend.auth.session.store.RefreshSessionStore;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,8 +16,12 @@ import java.io.IOException;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
+    private final RefreshSessionStore sessions;
 
-    public JwtAuthenticationFilter(JwtService jwtService) { this.jwtService = jwtService; }
+    public JwtAuthenticationFilter(JwtService jwtService, RefreshSessionStore sessions) {
+        this.jwtService = jwtService;
+        this.sessions = sessions;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -26,6 +31,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
                 AuthenticatedUser principal = jwtService.parseAccessToken(authorization.substring(7));
+                if (principal.sessionId() == null
+                        || !sessions.isActive(principal.id(), principal.sessionId())) {
+                    throw new IllegalArgumentException("Session is no longer active");
+                }
                 var authentication = new UsernamePasswordAuthenticationToken(
                         principal, null, principal.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(authentication);

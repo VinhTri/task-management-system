@@ -1,5 +1,6 @@
 package com.smartspend.category.entity;
 
+import com.smartspend.category.enums.CategoryType;
 import com.smartspend.common.entity.BaseEntity;
 import com.smartspend.user.entity.User;
 import jakarta.persistence.*;

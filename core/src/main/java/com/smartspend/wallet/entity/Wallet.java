@@ -2,6 +2,8 @@ package com.smartspend.wallet.entity;
 
 import com.smartspend.account.entity.CustomerAccount;
 import com.smartspend.common.entity.BaseEntity;
+import com.smartspend.wallet.exception.InsufficientBalanceException;
+import com.smartspend.wallet.exception.InvalidWalletAmountException;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -46,6 +48,25 @@ public class Wallet extends BaseEntity {
     }
 
     public static Wallet createDefault(CustomerAccount account) { return new Wallet(account); }
+
+    public void deposit(BigDecimal amount) {
+        validateAmount(amount);
+        balance = balance.add(amount);
+    }
+
+    public void withdraw(BigDecimal amount) {
+        validateAmount(amount);
+        if (balance.compareTo(amount) < 0) {
+            throw new InsufficientBalanceException();
+        }
+        balance = balance.subtract(amount);
+    }
+
+    private void validateAmount(BigDecimal amount) {
+        if (amount == null || amount.signum() <= 0 || amount.scale() > 2) {
+            throw new InvalidWalletAmountException();
+        }
+    }
 
     public Long getId() { return id; }
     public CustomerAccount getAccount() { return account; }

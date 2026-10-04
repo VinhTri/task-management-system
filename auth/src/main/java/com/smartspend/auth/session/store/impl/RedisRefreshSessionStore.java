@@ -15,12 +15,15 @@ import java.util.Set;
 @Repository
 public class RedisRefreshSessionStore implements RefreshSessionStore {
     private static final DefaultRedisScript<String> CONSUME_SCRIPT = new DefaultRedisScript<>("""
+            local active = redis.call('GET', KEYS[2])
+            if not active or active ~= ARGV[2] then return nil end
             local actual = redis.call('HGET', KEYS[1], 'secretHash')
             if not actual or actual ~= ARGV[1] then return nil end
             local userId = redis.call('HGET', KEYS[1], 'userId')
             local email = redis.call('HGET', KEYS[1], 'email')
             local role = redis.call('HGET', KEYS[1], 'role')
             redis.call('DEL', KEYS[1])
+            redis.call('DEL', KEYS[2])
             return userId .. '|' .. email .. '|' .. role
             """, String.class);
     private final StringRedisTemplate redis;
@@ -38,6 +41,7 @@ public class RedisRefreshSessionStore implements RefreshSessionStore {
         redis.expire(sessionKey(session.id()), ttl);
         redis.opsForSet().add(userSessionsKey(session.userId()), session.id());
         redis.expire(userSessionsKey(session.userId()), ttl);
+        redis.opsForValue().set(activeSessionKey(session.userId()), session.id(), ttl);
     }
 
     @Override
@@ -53,8 +57,11 @@ public class RedisRefreshSessionStore implements RefreshSessionStore {
 
     @Override
     public Optional<RefreshSession> consume(String sessionId, String presentedSecretHash) {
+        Optional<RefreshSession> stored = find(sessionId);
+        if (stored.isEmpty()) return Optional.empty();
         String result = redis.execute(CONSUME_SCRIPT,
-                java.util.List.of(sessionKey(sessionId)), presentedSecretHash);
+                java.util.List.of(sessionKey(sessionId), activeSessionKey(stored.get().userId())),
+                presentedSecretHash, sessionId);
         if (result == null) return Optional.empty();
         String[] values = result.split("\\|", 3);
         Long userId = Long.valueOf(values[0]);
@@ -65,7 +72,11 @@ public class RedisRefreshSessionStore implements RefreshSessionStore {
 
     @Override
     public void delete(String sessionId) {
-        find(sessionId).ifPresent(session -> redis.opsForSet().remove(userSessionsKey(session.userId()), sessionId));
+        find(sessionId).ifPresent(session -> {
+            redis.opsForSet().remove(userSessionsKey(session.userId()), sessionId);
+            String activeId = redis.opsForValue().get(activeSessionKey(session.userId()));
+            if (sessionId.equals(activeId)) redis.delete(activeSessionKey(session.userId()));
+        });
         redis.delete(sessionKey(sessionId));
     }
 
@@ -74,8 +85,17 @@ public class RedisRefreshSessionStore implements RefreshSessionStore {
         Set<String> ids = redis.opsForSet().members(userSessionsKey(userId));
         if (ids != null && !ids.isEmpty()) redis.delete(ids.stream().map(this::sessionKey).toList());
         redis.delete(userSessionsKey(userId));
+        redis.delete(activeSessionKey(userId));
+    }
+
+    @Override
+    public boolean isActive(Long userId, String sessionId) {
+        return sessionId != null
+                && sessionId.equals(redis.opsForValue().get(activeSessionKey(userId)))
+                && Boolean.TRUE.equals(redis.hasKey(sessionKey(sessionId)));
     }
 
     private String sessionKey(String sessionId) { return "auth:session:" + sessionId; }
     private String userSessionsKey(Long userId) { return "auth:user-sessions:" + userId; }
+    private String activeSessionKey(Long userId) { return "auth:active-session:" + userId; }
 }

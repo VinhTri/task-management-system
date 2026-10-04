@@ -19,6 +19,7 @@ public class DatabaseUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String email) {
         User user = users.findByEmail(email.trim().toLowerCase(Locale.ROOT))
                 .orElseThrow(() -> new UsernameNotFoundException("Invalid credentials"));
-        return new AuthenticatedUser(user.getId(), user.getEmail(), user.getPasswordHash(), user.getRole(), user.isEnabled());
+        return new AuthenticatedUser(
+                user.getId(), user.getEmail(), user.getPasswordHash(), user.getRole(), user.isEnabled(), null);
     }
 }

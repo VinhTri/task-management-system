@@ -1,7 +1,7 @@
 package com.smartspend.customer.category.dto;
 
 import com.smartspend.category.entity.Category;
-import com.smartspend.category.entity.CategoryType;
+import com.smartspend.category.enums.CategoryType;
 
 public record CategoryResponse(
         Long id,
