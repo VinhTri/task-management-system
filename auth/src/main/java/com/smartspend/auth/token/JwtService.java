@@ -24,7 +24,7 @@ public class JwtService {
         this.key = Keys.hmacShaKeyFor(Base64.getDecoder().decode(properties.jwtSecretBase64()));
     }
 
-    public String createAccessToken(Long userId, String email, Role role) {
+    public String createAccessToken(Long userId, String email, Role role, String sessionId) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .id(UUID.randomUUID().toString())
@@ -32,6 +32,7 @@ public class JwtService {
                 .claim("email", email)
                 .claim("role", role.name())
                 .claim("type", "access")
+                .claim("sid", sessionId)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(properties.accessTokenTtl())))
                 .signWith(key)
@@ -46,7 +47,8 @@ public class JwtService {
                 claims.get("email", String.class),
                 "",
                 Role.valueOf(claims.get("role", String.class)),
-                true
+                true,
+                claims.get("sid", String.class)
         );
     }
 }

@@ -8,7 +8,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.List;
 
-public record AuthenticatedUser(Long id, String email, String passwordHash, Role role, boolean enabled)
+public record AuthenticatedUser(Long id, String email, String passwordHash, Role role,
+                                boolean enabled, String sessionId)
         implements UserDetails {
     @Override public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));

@@ -1,4 +1,4 @@
-package com.smartspend.category.entity;
+package com.smartspend.category.enums;
 
 public enum CategoryType {
     INCOME,

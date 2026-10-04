@@ -35,6 +35,8 @@ public class SessionServiceImpl implements SessionService {
 
     @Override
     public AuthResponse create(User user) {
+        // Mỗi tài khoản chỉ có một phiên hoạt động: đăng nhập mới thu hồi mọi phiên cũ.
+        sessions.deleteAllForUser(user.getId());
         return create(user.getId(), user.getEmail(), user.getRole());
     }
 
@@ -70,7 +72,7 @@ public class SessionServiceImpl implements SessionService {
         sessions.save(new RefreshSession(sessionId, userId, email, role, hmac.hash(secret)),
                 properties.refreshTokenTtl());
         return new AuthResponse(
-                jwtService.createAccessToken(userId, email, role),
+                jwtService.createAccessToken(userId, email, role, sessionId),
                 properties.accessTokenTtl().toSeconds(),
                 sessionId + "." + secret,
                 properties.refreshTokenTtl().toSeconds(),

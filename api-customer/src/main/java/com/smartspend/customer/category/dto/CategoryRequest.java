@@ -1,6 +1,6 @@
 package com.smartspend.customer.category.dto;
 
-import com.smartspend.category.entity.CategoryType;
+import com.smartspend.category.enums.CategoryType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;

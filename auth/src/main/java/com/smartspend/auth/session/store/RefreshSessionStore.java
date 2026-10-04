@@ -11,4 +11,5 @@ public interface RefreshSessionStore {
     Optional<RefreshSession> consume(String sessionId, String presentedSecretHash);
     void delete(String sessionId);
     void deleteAllForUser(Long userId);
+    boolean isActive(Long userId, String sessionId);
 }
