@@ -1,23 +1,58 @@
 import { sessionStore, type Portal } from '../auth/session'
 import type { ApiResponse, AuthTokens } from '../types/api'
+import { createClientId } from '../utils/id'
 
 const apiRoots: Record<Portal, string> = {
   customer: import.meta.env.VITE_CUSTOMER_API_URL || '/customer-api',
   admin: import.meta.env.VITE_ADMIN_API_URL || '/admin-api',
 }
 
+export function apiAssetUrl(portal: Portal, path?: string | null): string | null {
+  if (!path) return null
+  if (/^https?:\/\//i.test(path)) return path
+  return `${apiRoots[portal]}${path.startsWith('/') ? path : `/${path}`}`
+}
+
 const refreshInFlight: Partial<Record<Portal, Promise<AuthTokens>>> = {}
+const DEVICE_ID_KEY = 'smartspend-device-id'
+
+function getDeviceId(): string {
+  const existing = window.localStorage.getItem(DEVICE_ID_KEY)
+  if (existing) return existing
+  const created = createClientId()
+  window.localStorage.setItem(DEVICE_ID_KEY, created)
+  return created
+}
 
 export class ApiError extends Error {
-  constructor(message: string, public readonly code = 'REQUEST_FAILED') {
+  constructor(
+    message: string,
+    public readonly code = 'REQUEST_FAILED',
+    public readonly retryAfterSeconds?: number,
+  ) {
     super(message)
   }
+}
+
+function formatRetryAfter(seconds: number): string {
+  if (seconds < 60) return `${seconds} giây`
+  const minutes = Math.ceil(seconds / 60)
+  if (minutes < 60) return `${minutes} phút`
+  const hours = Math.ceil(minutes / 60)
+  return `${hours} giờ`
 }
 
 const parse = async <T>(response: Response): Promise<ApiResponse<T>> => {
   const body = (await response.json().catch(() => null)) as ApiResponse<T> | null
   if (!response.ok || !body?.success) {
-    throw new ApiError(body?.message || 'Không thể kết nối đến máy chủ.', body?.code)
+    const retryMessage = body?.retryAfterSeconds
+      ? ` Vui lòng thử lại sau ${formatRetryAfter(body.retryAfterSeconds)}.`
+      : ''
+    throw new ApiError(
+      `${body?.message || 'Không thể kết nối đến máy chủ.'}${retryMessage}`,
+      body?.code,
+      body?.retryAfterSeconds,
+    )
   }
   return body
 }
@@ -53,7 +88,8 @@ export async function request<T>(
 ): Promise<ApiResponse<T>> {
   const session = sessionStore.get(portal)
   const headers = new Headers(options.headers)
-  headers.set('Content-Type', 'application/json')
+  if (!(options.body instanceof FormData)) headers.set('Content-Type', 'application/json')
+  headers.set('X-Device-Id', getDeviceId())
   if (session?.accessToken) headers.set('Authorization', `Bearer ${session.accessToken}`)
 
   let response = await fetch(`${apiRoots[portal]}${path}`, { ...options, headers })

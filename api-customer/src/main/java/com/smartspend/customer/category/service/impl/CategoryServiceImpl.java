@@ -1,8 +1,8 @@
 package com.smartspend.customer.category.service.impl;
 
 import com.smartspend.customer.category.CategoryCache;
-import com.smartspend.customer.category.dto.CategoryRequest;
-import com.smartspend.customer.category.dto.CategoryResponse;
+import com.smartspend.customer.category.dto.request.CategoryRequest;
+import com.smartspend.customer.category.dto.response.CategoryResponse;
 import com.smartspend.customer.category.exception.CategoryErrorCode;
 import com.smartspend.customer.category.service.CategoryService;
 import com.smartspend.category.entity.Category;
@@ -21,6 +21,7 @@ import java.util.Locale;
 
 @Service
 public class CategoryServiceImpl implements CategoryService {
+    private static final long MAX_ACTIVE_CATEGORIES = 60;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final CategoryCache cache;
@@ -46,32 +47,21 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional
     public CategoryResponse create(Long userId, CategoryRequest request) {
         String name = normalizeName(request.name());
-        if (categoryRepository.existsByUserIdAndNameIgnoreCaseAndActiveTrue(userId, name)) {
+        String icon = request.icon().trim();
+        User user = userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new AppException(CategoryErrorCode.USER_NOT_FOUND));
+        if (categoryRepository.countByUserIdAndActiveTrue(userId) >= MAX_ACTIVE_CATEGORIES) {
+            throw new AppException(CategoryErrorCode.LIMIT_REACHED);
+        }
+        if (categoryRepository.existsByUserIdAndTypeAndNameIgnoreCaseAndActiveTrue(userId, request.type(), name)) {
             throw new AppException(CategoryErrorCode.NAME_EXISTS);
         }
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(CategoryErrorCode.USER_NOT_FOUND));
+        if (categoryRepository.existsByUserIdAndTypeAndIconIgnoreCaseAndActiveTrue(userId, request.type(), icon)) {
+            throw new AppException(CategoryErrorCode.ICON_EXISTS);
+        }
         try {
             Category saved = categoryRepository.saveAndFlush(Category.create(
-                    user, name, request.type(), request.icon().trim(), request.color().toUpperCase(Locale.ROOT)));
-            evictAfterCommit(userId);
-            return CategoryResponse.from(saved);
-        } catch (DataIntegrityViolationException exception) {
-            throw new AppException(CategoryErrorCode.NAME_EXISTS);
-        }
-    }
-
-    @Override
-    @Transactional
-    public CategoryResponse update(Long userId, Long categoryId, CategoryRequest request) {
-        Category category = ownedActiveCategory(userId, categoryId);
-        String name = normalizeName(request.name());
-        if (categoryRepository.existsByUserIdAndNameIgnoreCaseAndActiveTrueAndIdNot(userId, name, categoryId)) {
-            throw new AppException(CategoryErrorCode.NAME_EXISTS);
-        }
-        category.update(name, request.type(), request.icon().trim(), request.color().toUpperCase(Locale.ROOT));
-        try {
-            Category saved = categoryRepository.saveAndFlush(category);
+                    user, name, request.type(), icon, request.color().toUpperCase(Locale.ROOT)));
             evictAfterCommit(userId);
             return CategoryResponse.from(saved);
         } catch (DataIntegrityViolationException exception) {

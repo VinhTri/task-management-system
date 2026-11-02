@@ -11,7 +11,10 @@ public enum WalletErrorCode implements ErrorCode {
     IDEMPOTENCY_CONFLICT("WALLET_005", "Idempotency-Key đã được dùng cho giao dịch khác", HttpStatus.CONFLICT),
     RECIPIENT_ACCOUNT_NOT_FOUND("WALLET_006", "Không tìm thấy số tài khoản nhận", HttpStatus.NOT_FOUND),
     SELF_TRANSFER_NOT_ALLOWED("WALLET_007", "Không thể chuyển tiền cho chính tài khoản của bạn", HttpStatus.BAD_REQUEST),
-    TRANSFER_WALLETS_NOT_FOUND("WALLET_008", "Không thể khóa đầy đủ các ví giao dịch", HttpStatus.CONFLICT);
+    TRANSFER_WALLETS_NOT_FOUND("WALLET_008", "Không thể khóa đầy đủ các ví giao dịch", HttpStatus.CONFLICT),
+    TRANSACTION_AMOUNT_EXCEEDED("WALLET_009", "Mỗi giao dịch không được vượt quá 1.000.000.000 VND", HttpStatus.BAD_REQUEST),
+    WALLET_BALANCE_LIMIT_EXCEEDED("WALLET_010", "Số dư ví không được vượt quá 3.000.000.000 VND", HttpStatus.UNPROCESSABLE_ENTITY),
+    DESCRIPTION_TOO_LONG("WALLET_011", "Nội dung giao dịch không được vượt quá 255 ký tự", HttpStatus.BAD_REQUEST);
 
     private final String code;
     private final String message;

@@ -3,7 +3,7 @@ package com.smartspend.customer.category;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.smartspend.customer.category.dto.CategoryResponse;
+import com.smartspend.customer.category.dto.response.CategoryResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;

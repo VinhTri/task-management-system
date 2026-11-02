@@ -2,15 +2,18 @@ package com.smartspend.customer.wallet.service.impl;
 
 import com.smartspend.account.entity.CustomerAccount;
 import com.smartspend.customer.account.service.CustomerAccountService;
-import com.smartspend.customer.wallet.dto.InternalTransferRequest;
-import com.smartspend.customer.wallet.dto.InternalTransferResponse;
-import com.smartspend.customer.wallet.dto.WalletOperationRequest;
-import com.smartspend.customer.wallet.dto.WalletTransactionResponse;
+import com.smartspend.customer.wallet.dto.request.InternalTransferRequest;
+import com.smartspend.customer.wallet.dto.response.InternalTransferResponse;
+import com.smartspend.customer.wallet.dto.request.WalletOperationRequest;
+import com.smartspend.customer.wallet.dto.response.WalletTransactionResponse;
+import com.smartspend.common.exception.AppException;
+import com.smartspend.customer.wallet.exception.WalletErrorCode;
 import com.smartspend.transaction.entity.WalletTransaction;
 import com.smartspend.transaction.entity.WalletTransfer;
 import com.smartspend.transaction.enums.TransactionType;
 import com.smartspend.transaction.repository.WalletTransactionRepository;
 import com.smartspend.transaction.repository.WalletTransferRepository;
+import com.smartspend.transaction.reference.TransactionReferenceGenerator;
 import com.smartspend.wallet.entity.Wallet;
 import com.smartspend.wallet.repository.WalletRepository;
 import com.smartspend.user.entity.User;
@@ -52,7 +55,12 @@ class WalletTransactionServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new WalletTransactionServiceImpl(wallets, transactions, transfers, accountService);
+        service = new WalletTransactionServiceImpl(
+                wallets,
+                transactions,
+                transfers,
+                accountService,
+                new TransactionReferenceGenerator());
         wallet = Wallet.createDefault(null);
         wallet.deposit(new BigDecimal("700000.00"));
     }
@@ -155,9 +163,108 @@ class WalletTransactionServiceImplTest {
                 1L,
                 "transfer-self",
                 new InternalTransferRequest(
-                        "111111111111", new BigDecimal("1000.00"), "135790", null)));
+                        "111111111111", new BigDecimal("2000.00"), "135790", null)));
 
         verify(wallets, never()).findAllByIdForUpdate(any());
+    }
+
+    @Test
+    void depositShouldRejectAmountAboveOneBillionBeforeVerifyingPin() {
+        AppException exception = assertThrows(AppException.class, () -> service.deposit(
+                1L,
+                "deposit-over-limit",
+                new WalletOperationRequest(new BigDecimal("1000000000.01"), "135790", null)));
+
+        assertEquals(WalletErrorCode.TRANSACTION_AMOUNT_EXCEEDED, exception.getErrorCode());
+        verify(accountService, never()).verifyTransactionPin(any(), any());
+        verify(wallets, never()).findDefaultByUserIdForUpdate(any());
+    }
+
+    @Test
+    void withdrawalShouldRejectAmountAboveOneBillionBeforeVerifyingPin() {
+        AppException exception = assertThrows(AppException.class, () -> service.withdraw(
+                1L,
+                "withdrawal-over-limit",
+                new WalletOperationRequest(new BigDecimal("1000000000.01"), "135790", null)));
+
+        assertEquals(WalletErrorCode.TRANSACTION_AMOUNT_EXCEEDED, exception.getErrorCode());
+        verify(accountService, never()).verifyTransactionPin(any(), any());
+        verify(wallets, never()).findDefaultByUserIdForUpdate(any());
+    }
+
+    @Test
+    void withdrawalShouldRejectDescriptionLongerThanTwoHundredFiftyFiveCharacters() {
+        AppException exception = assertThrows(AppException.class, () -> service.withdraw(
+                1L,
+                "withdrawal-description-too-long",
+                new WalletOperationRequest(new BigDecimal("2000"), "135790", "a".repeat(256))));
+
+        assertEquals(WalletErrorCode.DESCRIPTION_TOO_LONG, exception.getErrorCode());
+        verify(accountService, never()).verifyTransactionPin(any(), any());
+        verify(wallets, never()).findDefaultByUserIdForUpdate(any());
+    }
+
+    @Test
+    void transferShouldRejectAmountAboveOneBillionBeforeVerifyingPin() {
+        AppException exception = assertThrows(AppException.class, () -> service.transfer(
+                1L,
+                "transfer-over-limit",
+                new InternalTransferRequest(
+                        "222222222222", new BigDecimal("1000000000.01"), "135790", null)));
+
+        assertEquals(WalletErrorCode.TRANSACTION_AMOUNT_EXCEEDED, exception.getErrorCode());
+        verify(accountService, never()).verifyTransactionPin(any(), any());
+        verify(wallets, never()).findDefaultByUserId(any());
+    }
+
+    @Test
+    void depositShouldRejectAmountBelowTwoThousandBeforeVerifyingPin() {
+        AppException exception = assertThrows(AppException.class, () -> service.deposit(
+                1L,
+                "deposit-below-minimum",
+                new WalletOperationRequest(new BigDecimal("1999.99"), "135790", null)));
+
+        assertEquals(WalletErrorCode.INVALID_AMOUNT, exception.getErrorCode());
+        verify(accountService, never()).verifyTransactionPin(any(), any());
+        verify(wallets, never()).findDefaultByUserIdForUpdate(any());
+    }
+
+    @Test
+    void depositShouldRejectWhenResultingBalanceExceedsThreeBillion() {
+        Wallet nearLimit = wallet(10L, "111111111111", "2500000000.00");
+        when(wallets.findDefaultByUserIdForUpdate(1L)).thenReturn(Optional.of(nearLimit));
+        when(transactions.findByWalletIdAndIdempotencyKey(10L, "deposit-balance-limit"))
+                .thenReturn(Optional.empty());
+
+        AppException exception = assertThrows(AppException.class, () -> service.deposit(
+                1L,
+                "deposit-balance-limit",
+                new WalletOperationRequest(new BigDecimal("600000000.00"), "135790", null)));
+
+        assertEquals(WalletErrorCode.WALLET_BALANCE_LIMIT_EXCEEDED, exception.getErrorCode());
+        assertEquals(0, new BigDecimal("2500000000.00").compareTo(nearLimit.getBalance()));
+        verify(transactions, never()).save(any());
+    }
+
+    @Test
+    void transferShouldRejectWhenRecipientBalanceWouldExceedThreeBillion() {
+        Wallet sender = wallet(10L, "111111111111", "1000000000.00");
+        Wallet recipient = wallet(20L, "222222222222", "2800000000.00");
+        when(wallets.findDefaultByUserId(1L)).thenReturn(Optional.of(sender));
+        when(wallets.findDefaultByAccountNumber("222222222222")).thenReturn(Optional.of(recipient));
+        when(wallets.findAllByIdForUpdate(List.of(10L, 20L))).thenReturn(List.of(sender, recipient));
+        when(transfers.findBySenderWalletIdAndIdempotencyKey(10L, "recipient-balance-limit"))
+                .thenReturn(Optional.empty());
+
+        AppException exception = assertThrows(AppException.class, () -> service.transfer(
+                1L,
+                "recipient-balance-limit",
+                new InternalTransferRequest(
+                        "222222222222", new BigDecimal("300000000.00"), "135790", null)));
+
+        assertEquals(WalletErrorCode.WALLET_BALANCE_LIMIT_EXCEEDED, exception.getErrorCode());
+        verify(transfers, never()).save(any());
+        verify(transactions, never()).saveAll(any());
     }
 
     private Wallet wallet(Long id, String accountNumber, String balance) {

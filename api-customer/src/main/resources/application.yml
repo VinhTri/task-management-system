@@ -2,6 +2,10 @@ server:
   port: ${SERVER_PORT:8080}
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 3MB
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/smartpending_demo}
     username: ${DB_USERNAME:smartspend}
@@ -27,15 +31,25 @@ spring:
       mail.smtp.starttls.enable: ${MAIL_STARTTLS:true}
 
 smartspend:
+  storage:
+    avatar-directory: ${AVATAR_DIRECTORY:./data/avatars}
   auth:
     jwt-secret-base64: ${JWT_SECRET_BASE64:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
     hmac-pepper: ${AUTH_HMAC_PEPPER:dev-only-change-this-long-random-secret}
     access-token-ttl: 15m
     refresh-token-ttl: 30d
-    otp-ttl: 5m
-    otp-cooldown: 60s
-    otp-send-window: 15m
-    otp-max-attempts: 5
-    otp-max-sends-per-window: 3
+    registration-token-ttl: 10m
     reset-token-ttl: 10m
+  otp:
+    hmac-pepper: ${OTP_HMAC_PEPPER:${AUTH_HMAC_PEPPER:dev-only-change-this-long-random-secret}}
+    ttl: 5m
+    cooldown: 60s
+    progressive-cooldown: 5m
+    send-window: 15m
+    max-attempts: 5
+    max-sends-per-window: 3
+    email-block-duration: 1h
+    client-violation-window: 24h
+    max-client-violations: 5
+    client-block-duration: 24h
     mail-from: ${MAIL_FROM:no-reply@smartspend.local}

@@ -3,7 +3,6 @@ import { PortalShell } from '../../../shared/components/PortalShell'
 
 export function AdminDashboard() {
   return <PortalShell portal="admin">
-    <div className="welcome-row"><div><span className="eyebrow">SMARTSPEND CONTROL</span><h1>Hệ thống đang ổn định</h1><p>Theo dõi vận hành và truy cập người dùng tại một nơi.</p></div><span className="system-live"><i /> Tất cả dịch vụ hoạt động</span></div>
     <div className="metric-grid admin-metrics">
       <article className="metric-card"><span className="green"><Users /></span><p>Tổng người dùng</p><strong>1.284</strong><small>+42 trong tháng này</small></article>
       <article className="metric-card"><span className="purple"><Activity /></span><p>Đang hoạt động</p><strong>876</strong><small>68,2% tổng người dùng</small></article>

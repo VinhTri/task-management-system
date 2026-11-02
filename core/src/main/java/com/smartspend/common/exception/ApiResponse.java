@@ -10,7 +10,8 @@ public record ApiResponse<T>(
         String code,
         String message,
         T data,
-        Instant timestamp
+        Instant timestamp,
+        Long retryAfterSeconds
 ) {
 
     public static <T> ApiResponse<T> success(
@@ -22,7 +23,8 @@ public record ApiResponse<T>(
                 "SUCCESS",
                 message,
                 data,
-                Instant.now()
+                Instant.now(),
+                null
         );
     }
 
@@ -36,13 +38,21 @@ public record ApiResponse<T>(
             String code,
             String message
     ) {
+        return failure(code, message, null);
+    }
+
+    public static ApiResponse<Void> failure(
+            String code,
+            String message,
+            Long retryAfterSeconds
+    ) {
         return new ApiResponse<>(
                 false,
                 code,
                 message,
                 null,
-                Instant.now()
+                Instant.now(),
+                retryAfterSeconds
         );
     }
 }
-

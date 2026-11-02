@@ -2,8 +2,11 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './app/App'
-import './styles.css'
-import './wallet.css'
-import './category.css'
+import './test-ui.css'
+import './shared.css'
+import { NotificationProvider } from './shared/components/NotificationProvider'
+import { applyTheme, getCachedTheme } from './shared/utils/theme'
 
-createRoot(document.getElementById('root')!).render(<StrictMode><BrowserRouter><App /></BrowserRouter></StrictMode>)
+applyTheme(getCachedTheme())
+
+createRoot(document.getElementById('root')!).render(<StrictMode><NotificationProvider><BrowserRouter><App /></BrowserRouter></NotificationProvider></StrictMode>)
