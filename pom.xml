@@ -25,6 +25,7 @@
 
     <modules>
         <module>core</module>
+        <module>otp</module>
         <module>auth</module>
         <module>api-customer</module>
         <module>api-admin</module>

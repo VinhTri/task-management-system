@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -15,7 +16,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AppException.class)
     ResponseEntity<ApiResponse<Void>> handleAppException(AppException exception) {
         ErrorCode error = exception.getErrorCode();
-        return ResponseEntity.status(error.status()).body(ApiResponse.failure(error.code(), error.message()));
+        ResponseEntity.BodyBuilder response = ResponseEntity.status(error.status());
+        if (exception.getRetryAfterSeconds() != null) {
+            response.header(HttpHeaders.RETRY_AFTER, String.valueOf(exception.getRetryAfterSeconds()));
+        }
+        return response.body(ApiResponse.failure(
+                error.code(), error.message(), exception.getRetryAfterSeconds()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -39,4 +45,3 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(error.status()).body(ApiResponse.failure(error.code(), error.message()));
     }
 }
-

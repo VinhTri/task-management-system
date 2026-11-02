@@ -2,10 +2,10 @@ package com.smartspend.customer.wallet.controller;
 
 import com.smartspend.auth.security.AuthenticatedUser;
 import com.smartspend.common.response.ApiResponse;
-import com.smartspend.customer.wallet.dto.WalletOperationRequest;
-import com.smartspend.customer.wallet.dto.WalletTransactionResponse;
-import com.smartspend.customer.wallet.dto.InternalTransferRequest;
-import com.smartspend.customer.wallet.dto.InternalTransferResponse;
+import com.smartspend.customer.wallet.dto.request.WalletOperationRequest;
+import com.smartspend.customer.wallet.dto.response.WalletTransactionResponse;
+import com.smartspend.customer.wallet.dto.request.InternalTransferRequest;
+import com.smartspend.customer.wallet.dto.response.InternalTransferResponse;
 import com.smartspend.customer.wallet.service.WalletTransactionService;
 import com.smartspend.transaction.enums.TransactionType;
 import jakarta.validation.Valid;

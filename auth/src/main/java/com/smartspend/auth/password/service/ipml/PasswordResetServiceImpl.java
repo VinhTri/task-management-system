@@ -7,11 +7,13 @@ import com.smartspend.auth.dto.request.ResetPasswordRequest;
 import com.smartspend.auth.dto.request.VerifyOtpRequest;
 import com.smartspend.auth.dto.response.ResetTokenResponse;
 import com.smartspend.auth.exception.AuthErrorCode;
-import com.smartspend.auth.otp.service.OtpService;
+import com.smartspend.otp.service.OtpService;
+import com.smartspend.otp.exception.OtpErrorCode;
 import com.smartspend.auth.password.service.PasswordResetService;
 import com.smartspend.auth.password.store.ResetTokenStore;
 import com.smartspend.auth.session.service.SessionService;
 import com.smartspend.user.entity.User;
+import com.smartspend.user.EmailNormalizer;
 import com.smartspend.user.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -19,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.util.Base64;
-import java.util.Locale;
 
 @Service
 public class PasswordResetServiceImpl implements PasswordResetService {
@@ -46,8 +47,8 @@ public class PasswordResetServiceImpl implements PasswordResetService {
 
     @Override
     public ResetTokenResponse verifyOtp(VerifyOtpRequest request) {
-        String email = normalize(request.email());
-        if (!users.existsByEmail(email)) throw new AppException(AuthErrorCode.INVALID_OTP);
+        String email = EmailNormalizer.normalize(request.email());
+        if (!users.existsByEmail(email)) throw new AppException(OtpErrorCode.INVALID_OTP);
         otpService.verifyForPasswordReset(email, request.otp());
         byte[] bytes = new byte[32];
         random.nextBytes(bytes);
@@ -67,7 +68,4 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         sessions.revokeAll(user.getId());
     }
 
-    private String normalize(String email) {
-        return email.trim().toLowerCase(Locale.ROOT);
-    }
 }

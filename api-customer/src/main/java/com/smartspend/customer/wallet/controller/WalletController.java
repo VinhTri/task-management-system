@@ -2,7 +2,7 @@ package com.smartspend.customer.wallet.controller;
 
 import com.smartspend.auth.security.AuthenticatedUser;
 import com.smartspend.common.response.ApiResponse;
-import com.smartspend.customer.wallet.dto.WalletResponse;
+import com.smartspend.customer.wallet.dto.response.WalletResponse;
 import com.smartspend.customer.wallet.service.WalletService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;

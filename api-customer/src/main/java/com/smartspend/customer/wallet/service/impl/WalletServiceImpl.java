@@ -3,7 +3,7 @@ package com.smartspend.customer.wallet.service.impl;
 import com.smartspend.account.repository.CustomerAccountRepository;
 import com.smartspend.common.exception.AppException;
 import com.smartspend.customer.account.exception.AccountErrorCode;
-import com.smartspend.customer.wallet.dto.WalletResponse;
+import com.smartspend.customer.wallet.dto.response.WalletResponse;
 import com.smartspend.customer.wallet.service.WalletService;
 import com.smartspend.wallet.entity.Wallet;
 import com.smartspend.wallet.repository.WalletRepository;

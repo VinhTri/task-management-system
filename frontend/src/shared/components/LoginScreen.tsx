@@ -1,10 +1,12 @@
 import { useState, type FormEvent } from 'react'
-import { ArrowRight, BarChart3, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck, Sparkles } from 'lucide-react'
+// Lucian UX/UI Prompt #040 · MIT License (c) 2026 Seokwoooo · https://lucianlabs.dev/uxui-prompt/#040
+import { Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { login, request } from '../api/http'
 import type { AccountOverview } from '../types/api'
 import type { Portal } from '../auth/session'
 import { Brand } from './Brand'
+import './ExpandingAuthRail.css'
 
 interface LoginScreenProps {
   portal: Portal
@@ -17,7 +19,6 @@ export function LoginScreen({ portal }: LoginScreenProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [remember, setRemember] = useState(true)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -42,50 +43,47 @@ export function LoginScreen({ portal }: LoginScreenProps) {
   }
 
   return (
-    <main className={`auth-page auth-page--${portal}`}>
-      <section className="auth-story">
-        <Brand inverse />
-        <div className="auth-story__content">
-          <span className="eyebrow"><Sparkles size={15} /> {admin ? 'Không gian vận hành' : 'Tài chính nhẹ nhàng hơn'}</span>
-          <h1>{admin ? 'Điều hành hệ thống, rõ ràng từng nhịp.' : 'Tiền của bạn. Kế hoạch của bạn.'}</h1>
-          <p>{admin
-            ? 'Một nơi tập trung để theo dõi người dùng, kiểm soát truy cập và giữ SmartSpend vận hành an toàn.'
-            : 'Theo dõi chi tiêu, xây dựng thói quen và tiến gần hơn đến những điều quan trọng với bạn.'}</p>
-          <div className="story-stat">
-            <span className="story-stat__icon">{admin ? <ShieldCheck /> : <BarChart3 />}</span>
-            <div><strong>{admin ? 'Bảo mật theo vai trò' : 'Một góc nhìn duy nhất'}</strong><small>{admin ? 'Khu vực dành riêng cho quản trị viên' : 'Nắm bắt dòng tiền trong vài giây'}</small></div>
-          </div>
-        </div>
-        <p className="auth-story__foot">© 2026 SmartSpend · Tài chính thông minh mỗi ngày</p>
-      </section>
+    <main className="u040-login">
+      <section className={`u040-login__shell${admin ? ' u040-login__shell--admin' : ''}`}>
+        <div className="u040-login__panel">
+          <div className="u040-login__card">
+            <div className="u040-login__brand"><Brand /></div>
+            <h2>{admin ? 'Đăng nhập quản trị' : 'Chào mừng trở lại'}</h2>
+            <p className="u040-login__intro">{admin ? 'Đăng nhập bằng tài khoản quản trị được cấp' : 'Đăng nhập vào tài khoản SmartSpend của bạn'}</p>
 
-      <section className="auth-panel">
-        <div className="auth-card">
-          <div className="mobile-brand"><Brand /></div>
-          <span className="auth-card__badge">{admin ? 'ADMIN PORTAL' : 'WELCOME BACK'}</span>
-          <h2>{admin ? 'Đăng nhập quản trị' : 'Chào mừng trở lại'}</h2>
-          <p className="auth-card__intro">{admin ? 'Sử dụng tài khoản quản trị được cấp.' : 'Tiếp tục hành trình tài chính của bạn.'}</p>
-
-          <form onSubmit={submit} className="auth-form">
+          <form onSubmit={submit} className="u040-login__form">
             <label>
               <span>Email</span>
-              <div className="input-wrap"><Mail size={18} /><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={admin ? 'admin@smartspend.vn' : 'ban@email.com'} autoComplete="email" required /></div>
+              <div className="u040-login__input"><span className="u040-login__input-icon"><Mail aria-hidden="true" /></span><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={admin ? 'admin@smartspend.vn' : 'Email của bạn'} autoComplete="email" required /></div>
             </label>
             <label>
               <span>Mật khẩu</span>
-              <div className="input-wrap"><LockKeyhole size={18} /><input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Nhập mật khẩu" autoComplete="current-password" minLength={12} required /><button type="button" className="icon-button" onClick={() => setShowPassword((value) => !value)} aria-label="Hiện hoặc ẩn mật khẩu">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div>
+              <div className="u040-login__input"><span className="u040-login__input-icon"><LockKeyhole aria-hidden="true" /></span><input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mật khẩu" autoComplete="current-password" minLength={12} required /><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}>{showPassword ? <EyeOff /> : <Eye />}</button></div>
             </label>
-            <div className="form-options">
-              <label className="check"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /><span /> Ghi nhớ đăng nhập</label>
-              {!admin && <Link to="/customer/forgot-password">Quên mật khẩu?</Link>}
-            </div>
-            {error && <p className="form-error" role="alert">{error}</p>}
-            <button className="primary-button" disabled={loading}>{loading ? 'Đang đăng nhập…' : 'Đăng nhập'} {!loading && <ArrowRight size={18} />}</button>
+            {!admin && <div className="u040-login__options"><Link to="/customer/forgot-password">Quên mật khẩu?</Link></div>}
+            {error && <p className="u040-login__error" role="alert">{error}</p>}
+            <button className="u040-login__submit" disabled={loading}>{loading ? 'Đang đăng nhập…' : 'Đăng nhập'}</button>
           </form>
 
-          {!admin && <p className="auth-switch">Chưa có tài khoản? <Link to="/customer/register">Đăng ký miễn phí</Link></p>}
-          <Link className="portal-link" to={admin ? '/customer/login' : '/admin/login'}>{admin ? '← Về trang đăng nhập khách hàng' : 'Đăng nhập dành cho quản trị viên →'}</Link>
+            {!admin && <p className="u040-login__switch">Chưa có tài khoản? <Link to="/customer/register">Đăng ký miễn phí</Link></p>}
+            <Link className="u040-login__portal-link" to={admin ? '/customer/login' : '/admin/login'}>{admin ? '← Về đăng nhập khách hàng' : 'Đăng nhập dành cho quản trị viên →'}</Link>
+          </div>
         </div>
+        <aside className="u040-login__visual" aria-label="Giới thiệu SmartSpend">
+          <div className="u040-login__visual-art" aria-hidden="true">
+            <div className="u040-login__glass u040-login__glass--balance"><i /><span /><b /></div>
+            <div className="u040-login__glass u040-login__glass--chart"><i /><i /><i /><i /><i /></div>
+            <div className="u040-login__orb" />
+          </div>
+          <div className="u040-login__visual-copy">
+            <span>{admin ? 'SMARTSPEND ADMIN' : 'SMARTSPEND'}</span>
+            <h1>{admin ? 'Vận hành rõ ràng. Kiểm soát an toàn.' : 'Tài chính thông minh. Cuộc sống nhẹ nhàng.'}</h1>
+            <p>{admin ? 'Theo dõi hoạt động và quản lý hệ thống trong một không gian tập trung.' : 'Theo dõi dòng tiền, quản lý chi tiêu và xây dựng kế hoạch tài chính theo cách của bạn.'}</p>
+            <ul className="u040-login__visual-points">
+              {(admin ? ['Quản lý hệ thống tập trung', 'Phân quyền truy cập an toàn', 'Theo dõi hoạt động rõ ràng'] : ['Nắm bắt dòng tiền tức thời', 'Phân loại chi tiêu thông minh', 'Bảo vệ tài khoản nhiều lớp']).map((item) => <li key={item}><b>✓</b>{item}</li>)}
+            </ul>
+          </div>
+        </aside>
       </section>
     </main>
   )

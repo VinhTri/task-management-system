@@ -8,12 +8,17 @@ import com.smartspend.auth.dto.request.SendOtpRequest;
 import com.smartspend.auth.dto.request.VerifyOtpRequest;
 import com.smartspend.auth.dto.response.AuthResponse;
 import com.smartspend.auth.dto.response.ResetTokenResponse;
+import com.smartspend.auth.dto.response.RegistrationTokenResponse;
+import com.smartspend.auth.dto.response.OtpDeliveryResponse;
 import com.smartspend.auth.password.service.PasswordResetService;
 import com.smartspend.auth.service.AuthService;
 import com.smartspend.common.response.ApiResponse;
+import com.smartspend.customer.common.web.ClientIdentity;
+import com.smartspend.customer.common.web.ClientIdentityResolver;
 import com.smartspend.user.enums.Role;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -22,16 +27,28 @@ import org.springframework.web.bind.annotation.*;
 public class CustomerAuthController {
     private final AuthService authService;
     private final PasswordResetService passwordResetService;
+    private final ClientIdentityResolver clientIdentityResolver;
 
-    public CustomerAuthController(AuthService authService, PasswordResetService passwordResetService) {
+    public CustomerAuthController(AuthService authService, PasswordResetService passwordResetService,
+                                  ClientIdentityResolver clientIdentityResolver) {
         this.authService = authService;
         this.passwordResetService = passwordResetService;
+        this.clientIdentityResolver = clientIdentityResolver;
     }
 
     @PostMapping("/register/otp")
-    public ApiResponse<Void> requestRegistrationOtp(@Valid @RequestBody SendOtpRequest request) {
-        authService.requestRegistrationOtp(request);
-        return ApiResponse.success("OTP đăng ký đã được gửi");
+    public ApiResponse<OtpDeliveryResponse> requestRegistrationOtp(
+            @Valid @RequestBody SendOtpRequest request,
+            HttpServletRequest servletRequest) {
+        ClientIdentity client = clientIdentityResolver.resolve(servletRequest);
+        return ApiResponse.success("OTP đăng ký đã được gửi",
+                authService.requestRegistrationOtp(request, client.ipAddress(), client.deviceId()));
+    }
+
+    @PostMapping("/register/verify-otp")
+    public ApiResponse<RegistrationTokenResponse> verifyRegistrationOtp(
+            @Valid @RequestBody VerifyOtpRequest request) {
+        return ApiResponse.success("Email đã được xác thực", authService.verifyRegistrationOtp(request));
     }
 
     @PostMapping("/register")
@@ -56,9 +73,12 @@ public class CustomerAuthController {
     }
 
     @PostMapping("/password/forgot")
-    public ApiResponse<Void> forgotPassword(@Valid @RequestBody SendOtpRequest request) {
-        authService.requestPasswordResetOtp(request);
-        return ApiResponse.success("Nếu tài khoản tồn tại, OTP sẽ được gửi đến email");
+    public ApiResponse<OtpDeliveryResponse> forgotPassword(
+            @Valid @RequestBody SendOtpRequest request,
+            HttpServletRequest servletRequest) {
+        ClientIdentity client = clientIdentityResolver.resolve(servletRequest);
+        return ApiResponse.success("Nếu tài khoản tồn tại, OTP sẽ được gửi đến email",
+                authService.requestPasswordResetOtp(request, client.ipAddress(), client.deviceId()));
     }
 
     @PostMapping("/password/verify-otp")
@@ -71,4 +91,5 @@ public class CustomerAuthController {
         passwordResetService.reset(request);
         return ApiResponse.success("Đặt lại mật khẩu thành công");
     }
+
 }

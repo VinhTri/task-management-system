@@ -1,0 +1,5 @@
+ALTER TABLE users
+    ADD COLUMN theme VARCHAR(10) NOT NULL DEFAULT 'LIGHT';
+
+ALTER TABLE users
+    ADD CONSTRAINT ck_users_theme CHECK (theme IN ('LIGHT', 'DARK'));

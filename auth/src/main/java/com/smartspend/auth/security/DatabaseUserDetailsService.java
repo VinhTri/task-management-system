@@ -1,13 +1,13 @@
 package com.smartspend.auth.security;
 
 import com.smartspend.user.entity.User;
+import com.smartspend.user.EmailNormalizer;
 import com.smartspend.user.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.Locale;
 
 @Service
 public class DatabaseUserDetailsService implements UserDetailsService {
@@ -17,7 +17,7 @@ public class DatabaseUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) {
-        User user = users.findByEmail(email.trim().toLowerCase(Locale.ROOT))
+        User user = users.findByEmail(EmailNormalizer.normalize(email))
                 .orElseThrow(() -> new UsernameNotFoundException("Invalid credentials"));
         return new AuthenticatedUser(
                 user.getId(), user.getEmail(), user.getPasswordHash(), user.getRole(), user.isEnabled(), null);

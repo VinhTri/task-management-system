@@ -52,13 +52,6 @@ public class Category extends BaseEntity {
         return new Category(user, name, type, icon, color);
     }
 
-    public void update(String name, CategoryType type, String icon, String color) {
-        this.name = name;
-        this.type = type;
-        this.icon = icon;
-        this.color = color;
-    }
-
     public void deactivate() { this.active = false; }
 
     public Long getId() { return id; }

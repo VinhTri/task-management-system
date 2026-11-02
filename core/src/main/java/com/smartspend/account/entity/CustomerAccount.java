@@ -45,4 +45,8 @@ public class CustomerAccount extends BaseEntity {
     public User getUser() { return user; }
     public String getAccountNumber() { return accountNumber; }
     public String getPinHash() { return pinHash; }
+
+    public void changePin(String newPinHash) {
+        this.pinHash = newPinHash;
+    }
 }

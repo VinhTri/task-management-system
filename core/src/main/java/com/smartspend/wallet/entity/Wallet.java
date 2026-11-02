@@ -4,6 +4,7 @@ import com.smartspend.account.entity.CustomerAccount;
 import com.smartspend.common.entity.BaseEntity;
 import com.smartspend.wallet.exception.InsufficientBalanceException;
 import com.smartspend.wallet.exception.InvalidWalletAmountException;
+import com.smartspend.wallet.exception.WalletBalanceLimitExceededException;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -12,6 +13,7 @@ import java.math.BigDecimal;
 @Table(name = "wallets", indexes = @Index(name = "ix_wallets_account", columnList = "account_id"))
 public class Wallet extends BaseEntity {
     public static final String DEFAULT_NAME = "Ví SmartSpend";
+    public static final BigDecimal MAX_BALANCE = new BigDecimal("3000000000");
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -51,7 +53,11 @@ public class Wallet extends BaseEntity {
 
     public void deposit(BigDecimal amount) {
         validateAmount(amount);
-        balance = balance.add(amount);
+        BigDecimal newBalance = balance.add(amount);
+        if (newBalance.compareTo(MAX_BALANCE) > 0) {
+            throw new WalletBalanceLimitExceededException();
+        }
+        balance = newBalance;
     }
 
     public void withdraw(BigDecimal amount) {

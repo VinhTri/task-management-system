@@ -1,8 +1,8 @@
 package com.smartspend.customer.category.controller;
 
 import com.smartspend.auth.security.AuthenticatedUser;
-import com.smartspend.customer.category.dto.CategoryRequest;
-import com.smartspend.customer.category.dto.CategoryResponse;
+import com.smartspend.customer.category.dto.request.CategoryRequest;
+import com.smartspend.customer.category.dto.response.CategoryResponse;
 import com.smartspend.customer.category.service.CategoryService;
 import com.smartspend.common.response.ApiResponse;
 import jakarta.validation.Valid;
@@ -30,15 +30,6 @@ public class CategoryController {
             @AuthenticationPrincipal AuthenticatedUser user,
             @Valid @RequestBody CategoryRequest request) {
         return ApiResponse.success("Tạo danh mục thành công", categoryService.create(user.id(), request));
-    }
-
-    @PutMapping("/{categoryId}")
-    public ApiResponse<CategoryResponse> update(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable Long categoryId,
-            @Valid @RequestBody CategoryRequest request) {
-        return ApiResponse.success("Cập nhật danh mục thành công",
-                categoryService.update(user.id(), categoryId, request));
     }
 
     @DeleteMapping("/{categoryId}")

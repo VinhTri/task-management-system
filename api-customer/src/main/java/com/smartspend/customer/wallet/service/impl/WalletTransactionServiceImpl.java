@@ -2,10 +2,10 @@ package com.smartspend.customer.wallet.service.impl;
 
 import com.smartspend.common.exception.AppException;
 import com.smartspend.customer.account.service.CustomerAccountService;
-import com.smartspend.customer.wallet.dto.WalletOperationRequest;
-import com.smartspend.customer.wallet.dto.WalletTransactionResponse;
-import com.smartspend.customer.wallet.dto.InternalTransferRequest;
-import com.smartspend.customer.wallet.dto.InternalTransferResponse;
+import com.smartspend.customer.wallet.dto.request.WalletOperationRequest;
+import com.smartspend.customer.wallet.dto.response.WalletTransactionResponse;
+import com.smartspend.customer.wallet.dto.request.InternalTransferRequest;
+import com.smartspend.customer.wallet.dto.response.InternalTransferResponse;
 import com.smartspend.customer.wallet.exception.WalletErrorCode;
 import com.smartspend.customer.wallet.service.WalletTransactionService;
 import com.smartspend.transaction.entity.WalletTransaction;
@@ -13,9 +13,11 @@ import com.smartspend.transaction.entity.WalletTransfer;
 import com.smartspend.transaction.enums.TransactionType;
 import com.smartspend.transaction.repository.WalletTransactionRepository;
 import com.smartspend.transaction.repository.WalletTransferRepository;
+import com.smartspend.transaction.reference.TransactionReferenceGenerator;
 import com.smartspend.wallet.entity.Wallet;
 import com.smartspend.wallet.exception.InsufficientBalanceException;
 import com.smartspend.wallet.exception.InvalidWalletAmountException;
+import com.smartspend.wallet.exception.WalletBalanceLimitExceededException;
 import com.smartspend.wallet.repository.WalletRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,7 +25,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -32,21 +33,26 @@ import java.util.stream.Collectors;
 @Service
 public class WalletTransactionServiceImpl implements WalletTransactionService {
     private static final int IDEMPOTENCY_KEY_MAX_LENGTH = 100;
-
+    private static final int DESCRIPTION_MAX_LENGTH = 255;
+    private static final BigDecimal MIN_TRANSACTION_AMOUNT = new BigDecimal("2000");
+    private static final BigDecimal MAX_TRANSACTION_AMOUNT = new BigDecimal("1000000000");
     private final WalletRepository wallets;
     private final WalletTransactionRepository transactions;
     private final WalletTransferRepository transfers;
     private final CustomerAccountService accountService;
+    private final TransactionReferenceGenerator referenceGenerator;
 
     public WalletTransactionServiceImpl(
             WalletRepository wallets,
             WalletTransactionRepository transactions,
             WalletTransferRepository transfers,
-            CustomerAccountService accountService) {
+            CustomerAccountService accountService,
+            TransactionReferenceGenerator referenceGenerator) {
         this.wallets = wallets;
         this.transactions = transactions;
         this.transfers = transfers;
         this.accountService = accountService;
+        this.referenceGenerator = referenceGenerator;
     }
 
     @Override
@@ -67,6 +73,8 @@ public class WalletTransactionServiceImpl implements WalletTransactionService {
     @Transactional
     public InternalTransferResponse transfer(
             Long userId, String idempotencyKey, InternalTransferRequest request) {
+        validateTransactionAmount(request.amount());
+        validateDescription(request.description());
         validateIdempotencyKey(idempotencyKey);
         accountService.verifyTransactionPin(userId, request.pin());
 
@@ -112,10 +120,12 @@ public class WalletTransactionServiceImpl implements WalletTransactionService {
             throw new AppException(WalletErrorCode.INVALID_AMOUNT);
         } catch (InsufficientBalanceException exception) {
             throw new AppException(WalletErrorCode.INSUFFICIENT_BALANCE);
+        } catch (WalletBalanceLimitExceededException exception) {
+            throw new AppException(WalletErrorCode.WALLET_BALANCE_LIMIT_EXCEEDED);
         }
 
         String description = normalizeDescription(request.description());
-        String transferReference = generateTransferReference();
+        String transferReference = referenceGenerator.generateTransferReference();
         WalletTransfer transfer = transfers.save(WalletTransfer.success(
                 transferReference,
                 sender,
@@ -131,7 +141,7 @@ public class WalletTransactionServiceImpl implements WalletTransactionService {
         WalletTransaction outgoing = WalletTransaction.transferEntry(
                 sender,
                 transfer,
-                generateReferenceCode(),
+                referenceGenerator.generateTransactionReference(),
                 transferReference + "-OUT",
                 TransactionType.TRANSFER_OUT,
                 request.amount(),
@@ -141,7 +151,7 @@ public class WalletTransactionServiceImpl implements WalletTransactionService {
         WalletTransaction incoming = WalletTransaction.transferEntry(
                 recipient,
                 transfer,
-                generateReferenceCode(),
+                referenceGenerator.generateTransactionReference(),
                 transferReference + "-IN",
                 TransactionType.TRANSFER_IN,
                 request.amount(),
@@ -172,6 +182,8 @@ public class WalletTransactionServiceImpl implements WalletTransactionService {
             String idempotencyKey,
             WalletOperationRequest request,
             TransactionType type) {
+        validateTransactionAmount(request.amount());
+        validateDescription(request.description());
         validateIdempotencyKey(idempotencyKey);
         accountService.verifyTransactionPin(userId, request.pin());
 
@@ -196,11 +208,13 @@ public class WalletTransactionServiceImpl implements WalletTransactionService {
             throw new AppException(WalletErrorCode.INVALID_AMOUNT);
         } catch (InsufficientBalanceException exception) {
             throw new AppException(WalletErrorCode.INSUFFICIENT_BALANCE);
+        } catch (WalletBalanceLimitExceededException exception) {
+            throw new AppException(WalletErrorCode.WALLET_BALANCE_LIMIT_EXCEEDED);
         }
 
         WalletTransaction transaction = WalletTransaction.success(
                 wallet,
-                generateReferenceCode(),
+                referenceGenerator.generateTransactionReference(),
                 idempotencyKey,
                 type,
                 request.amount(),
@@ -227,12 +241,19 @@ public class WalletTransactionServiceImpl implements WalletTransactionService {
         }
     }
 
-    private String generateReferenceCode() {
-        return "TXN-" + UUID.randomUUID().toString().replace("-", "").toUpperCase();
+    private void validateTransactionAmount(BigDecimal amount) {
+        if (amount == null || amount.compareTo(MIN_TRANSACTION_AMOUNT) < 0) {
+            throw new AppException(WalletErrorCode.INVALID_AMOUNT);
+        }
+        if (amount.compareTo(MAX_TRANSACTION_AMOUNT) > 0) {
+            throw new AppException(WalletErrorCode.TRANSACTION_AMOUNT_EXCEEDED);
+        }
     }
 
-    private String generateTransferReference() {
-        return "TRF-" + UUID.randomUUID().toString().replace("-", "").toUpperCase();
+    private void validateDescription(String description) {
+        if (description != null && description.length() > DESCRIPTION_MAX_LENGTH) {
+            throw new AppException(WalletErrorCode.DESCRIPTION_TOO_LONG);
+        }
     }
 
     private String normalizeDescription(String description) {

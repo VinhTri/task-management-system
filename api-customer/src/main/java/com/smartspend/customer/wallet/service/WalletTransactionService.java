@@ -1,9 +1,9 @@
 package com.smartspend.customer.wallet.service;
 
-import com.smartspend.customer.wallet.dto.WalletOperationRequest;
-import com.smartspend.customer.wallet.dto.WalletTransactionResponse;
-import com.smartspend.customer.wallet.dto.InternalTransferRequest;
-import com.smartspend.customer.wallet.dto.InternalTransferResponse;
+import com.smartspend.customer.wallet.dto.request.WalletOperationRequest;
+import com.smartspend.customer.wallet.dto.response.WalletTransactionResponse;
+import com.smartspend.customer.wallet.dto.request.InternalTransferRequest;
+import com.smartspend.customer.wallet.dto.response.InternalTransferResponse;
 import com.smartspend.transaction.enums.TransactionType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

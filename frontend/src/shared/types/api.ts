@@ -3,6 +3,7 @@ export interface ApiResponse<T> {
   code: string
   message: string
   data: T
+  retryAfterSeconds?: number
   timestamp: string
 }
 
@@ -17,7 +18,12 @@ export interface AuthTokens {
 export interface CurrentUser {
   id: number
   email: string
+  username: string
+  avatarUrl: string | null
   role: 'USER' | 'ADMIN'
+  status: 'ACTIVE' | 'DISABLED'
+  theme: 'LIGHT' | 'DARK'
+  createdAt: string
 }
 
 export interface WalletDetails {
@@ -33,6 +39,12 @@ export interface AccountOverview {
   pinConfigured: boolean
   accountNumber: string | null
   defaultWallet: WalletDetails | null
+}
+
+export interface PinStatus {
+  failedAttempts: number
+  maxAttempts: number
+  locked: boolean
 }
 
 export type WalletTransactionType = 'DEPOSIT' | 'WITHDRAWAL' | 'TRANSFER_OUT' | 'TRANSFER_IN'
